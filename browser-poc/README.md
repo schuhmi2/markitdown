@@ -137,8 +137,5 @@ EOF
 ## macOS desktop app
 
 [`desktop-macos`](../desktop-macos) packages this page as an offline macOS app with Pyodide
-and all wheels bundled. See its README for building and installing.
-
-The footer shows this page's version (`<span id="app-version">`) and the MarkItDown version
-that Pyodide loaded. The macOS app takes its version from the same span, so change it here
-for both.
+and all wheels bundled. See its README for building and installing. The app takes its version
+from the same `<span id="app-version">`, so change it in `index.html` for both.
