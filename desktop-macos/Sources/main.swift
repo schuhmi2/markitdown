@@ -117,7 +117,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     private func buildMenu() {
         let main = NSMenu()
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "About MarkItDown", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        appMenu.addItem(withTitle: "About MarkItDown", action: #selector(showAbout(_:)), keyEquivalent: "")
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Hide MarkItDown", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         appMenu.addItem(withTitle: "Quit MarkItDown", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
@@ -144,6 +144,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             main.addItem(withTitle: submenu.title, action: nil, keyEquivalent: "").submenu = submenu
         }
         NSApp.mainMenu = main
+    }
+
+    // The standard panel shows this app's version; the credits add the MarkItDown release it bundles.
+    @objc func showAbout(_ sender: Any?) {
+        let info = Bundle.main.infoDictionary ?? [:]
+        let appVersion = info["CFBundleShortVersionString"] as? String ?? "?"
+        let upstream = info["MarkItDownUpstreamVersion"] as? String ?? "unknown"
+        let centred = NSMutableParagraphStyle()
+        centred.alignment = .center
+        let base: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
+            .foregroundColor: NSColor.labelColor,
+            .paragraphStyle: centred,
+        ]
+        let credits = NSMutableAttributedString(
+            string: "Converter: Microsoft MarkItDown \(upstream)\n", attributes: base)
+        var link = base
+        link[.link] = URL(string: "https://github.com/microsoft/markitdown")!
+        credits.append(NSAttributedString(string: "github.com/microsoft/markitdown", attributes: link))
+        credits.append(NSAttributedString(string: "\nMIT License", attributes: base))
+        NSApp.orderFrontStandardAboutPanel(options: [
+            .applicationVersion: "MarkItDown for Mac \(appVersion)",
+            .version: "",
+            .credits: credits,
+        ])
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     @objc func openDocument(_ sender: Any?) {

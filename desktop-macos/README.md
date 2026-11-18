@@ -13,7 +13,9 @@ and is distributed under the same [MIT License](../browser-poc/LICENSE).
 The app is ad-hoc signed and not notarized, because that requires a paid Apple Developer
 account. macOS therefore blocks it the first time you open a copy downloaded from the internet.
 
-1. Unzip `MarkItDown-macOS.zip` and move `MarkItDown.app` to `/Applications`.
+1. Open `MarkItDown.dmg` and drag **MarkItDown** onto the **Applications** folder in the
+   installer window. (Or unzip `MarkItDown-macOS.zip` and move `MarkItDown.app` to
+   `/Applications`.)
 2. Open it once. macOS says it cannot verify the developer; click **Done**.
 3. Open **System Settings → Privacy & Security**, scroll to *Security*, click **Open Anyway**
    next to the MarkItDown message and confirm with your password.
@@ -48,6 +50,18 @@ The script:
    `packages/markitdown/tests/test_files` and checks that network requests fail.
 5. Signs the app ad hoc with the App Sandbox and writes `build/MarkItDown.app` and
    `build/MarkItDown-macOS.zip` (about 26 MB).
+6. Builds the drag-and-drop installer `build/MarkItDown.dmg` with
+   [dmgbuild](https://github.com/dmgbuild/dmgbuild), installed into a private virtual
+   environment in `build/cache`. The background image is drawn by
+   `tools/make_dmg_background.swift`, and the window layout is in `tools/dmg_settings.py`.
+
+### Versions
+
+`browser-poc/index.html` is the single source of truth. The app version is the page's
+`<span id="app-version">`, and the converter version is the pinned `markitdown==X` wheel.
+`build.sh` copies both into the app's `Info.plist`, so the web page and the Mac app always
+share a version. To release a new version, change it in `index.html` and rebuild. The page
+footer and **MarkItDown → About MarkItDown** show both versions.
 
 ## Use
 

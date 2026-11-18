@@ -11,7 +11,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'sha256-YpBVbrpKGF7GSbQzTlG5iTAT7dKdftwvXDCrT9bk/ew=' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; worker-src blob:; connect-src https://cdn.jsdelivr.net https://pypi.org https://files.pythonhosted.org; style-src 'sha256-W4bORTTBvdrRR0kVXkjXAwwZKDZ81tcB1znnkxF7RBI='; img-src data:; base-uri 'none'; form-action 'none'"
+      content="default-src 'none'; script-src 'sha256-pFEOAwt3oR3DQD9OkDrVDsLwCB5ZBYLMfT4g4WHO/vk=' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; worker-src blob:; connect-src https://cdn.jsdelivr.net https://pypi.org https://files.pythonhosted.org; style-src 'sha256-W4bORTTBvdrRR0kVXkjXAwwZKDZ81tcB1znnkxF7RBI='; img-src data:; base-uri 'none'; form-action 'none'"
     />
     <meta name="referrer" content="no-referrer" />
     <title>MarkItDown (in your browser)</title>
@@ -182,7 +182,7 @@
 
     <footer>
       <div class="shell footer-inner">
-        <span>Built on Microsoft’s open-source MarkItDown.</span>
+        <span id="versions">MarkItDown Web <span id="app-version">0.1.0</span> · built on Microsoft’s open-source MarkItDown <span id="upstream-version">0.1.9</span></span>
         <div class="footer-links">
           <a href="https://github.com/microsoft/markitdown">GitHub repository ↗</a>
           <a href="LICENSE">MIT license</a>
@@ -264,10 +264,11 @@ async def setup():
     _install_stubs()
     await micropip.install(WHEELS, deps=False)
 
-    from markitdown import MarkItDown
+    from markitdown import MarkItDown, __version__
 
     global _md
     _md = MarkItDown(enable_plugins=False)
+    return __version__
 
 
 def convert(data, filename, mimetype=None):
@@ -304,9 +305,9 @@ self.onmessage = async ({ data }) => {
       pyodide.FS.writeFile("/home/pyodide/mdweb.py", data.python);
       mod = pyodide.pyimport("mdweb");
       await pyodide.loadPackage(mod.PYODIDE_PACKAGES.toJs(), { messageCallback: () => {} });
-      await mod.setup();
+      const markitdownVersion = await mod.setup();
       lockDownNetwork();
-      self.postMessage({ type: "ready" });
+      self.postMessage({ type: "ready", markitdownVersion });
     } catch (err) {
       self.postMessage({ type: "fatal", error: String(err?.message ?? err) });
     }
@@ -342,6 +343,7 @@ self.onmessage = async ({ data }) => {
         if (data.type === "ready") {
           status.textContent = "Ready. Your files stay on this device.";
           status.dataset.state = "ready";
+          $("upstream-version").textContent = data.markitdownVersion;
           input.disabled = false;
         } else if (data.type === "fatal") {
           status.textContent = `Failed to load the converter: ${data.error}`;

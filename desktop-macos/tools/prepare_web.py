@@ -126,6 +126,12 @@ NATIVE_HELPERS = """
 
 
 def desktop_page(page, wheel_urls):
+    # The app shares the page's version number (build.sh copies it into Info.plist).
+    page = replace_once(
+        page,
+        'MarkItDown Web <span id="app-version">',
+        'MarkItDown for Mac <span id="app-version">',
+    )
     wheels_literal = "WHEELS = [\n" + "".join(f'    "{url}",\n' for url in wheel_urls) + "]"
     page = re.sub(r"WHEELS = \[.*?\]", lambda _: wheels_literal, page, count=1, flags=re.S)
     # micropip only downloads from http(s); Pyodide's loader also accepts the app's own scheme.
