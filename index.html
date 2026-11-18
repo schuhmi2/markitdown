@@ -1,0 +1,413 @@
+<!doctype html>
+<!--
+  MarkItDown in the browser: minimal, single-file proof of concept.
+  Files are converted locally with Pyodide (CPython on WebAssembly) and are never uploaded.
+  See README.md in this folder for the feasibility report.
+  If you edit the executable inline script or the style block, regenerate the CSP hashes (see README.md).
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'sha256-YpBVbrpKGF7GSbQzTlG5iTAT7dKdftwvXDCrT9bk/ew=' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; worker-src blob:; connect-src https://cdn.jsdelivr.net https://pypi.org https://files.pythonhosted.org; style-src 'sha256-W4bORTTBvdrRR0kVXkjXAwwZKDZ81tcB1znnkxF7RBI='; img-src data:; base-uri 'none'; form-action 'none'"
+    />
+    <meta name="referrer" content="no-referrer" />
+    <title>MarkItDown (in your browser)</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #202b3b;
+        background: #f6f7f5;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-width: 280px; }
+      a { color: inherit; }
+      button, input { font: inherit; }
+      button, a, input { -webkit-tap-highlight-color: transparent; }
+      :focus-visible { outline: 3px solid #466ee8; outline-offset: 4px; }
+      .shell { max-width: 1160px; margin: auto; padding: 0 32px; }
+      .site-header { border-bottom: 1px solid #e1e5e2; background: #fff; }
+      .header-inner { min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+      .brand { display: flex; align-items: center; gap: 12px; font-size: 17px; font-weight: 750; letter-spacing: -0.035em; }
+      .brand-mark {
+        display: grid; place-items: center; width: 36px; height: 36px;
+        border-radius: 10px; background: #202e44; color: #fff;
+        font-size: 17px; letter-spacing: -0.08em;
+      }
+      .header-link { font-size: 13px; font-weight: 650; color: #455369; text-decoration: none; }
+      .header-link:hover, footer a:hover { color: #3155bd; text-decoration: underline; }
+      main { padding-top: 74px; padding-bottom: 72px; }
+      .intro { max-width: 720px; margin-bottom: 38px; }
+      .eyebrow {
+        display: flex; align-items: center; gap: 8px; margin: 0 0 16px;
+        color: #35644d; font-size: 11px; font-weight: 750; letter-spacing: 0.13em; text-transform: uppercase;
+      }
+      .eyebrow::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #4b9670; }
+      h1 { margin: 0; font-size: clamp(38px, 5vw, 58px); line-height: 1.09; letter-spacing: -0.055em; font-weight: 750; }
+      .intro > p:last-child { max-width: 560px; margin: 17px 0 0; color: #596777; font-size: 17px; line-height: 1.65; }
+      .workspace {
+        display: grid; grid-template-columns: minmax(0, 1fr) 292px;
+        background: #fff; border: 1px solid #e0e5e1; border-radius: 18px;
+        box-shadow: 0 18px 55px rgba(32, 43, 59, 0.06); overflow: hidden;
+      }
+      .workspace-main { min-width: 0; padding: 30px; }
+      .section-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 19px; }
+      .section-heading h2 { margin: 0; font-size: 17px; letter-spacing: -0.025em; }
+      .section-heading span { color: #687485; font-size: 12px; }
+      .drop {
+        padding: 38px 20px 34px; text-align: center; border: 1.5px dashed #b5c3d6;
+        border-radius: 12px; background: #f9fbfe; transition: background 160ms, border-color 160ms;
+      }
+      .drop.over { background: #eef4ff; border-color: #456bd6; }
+      .upload-icon {
+        display: grid; place-items: center; width: 52px; height: 52px; margin: 0 auto 17px;
+        border: 1px solid #dce5f4; border-radius: 14px; background: #fff; color: #395fc7;
+      }
+      .drop h3 { margin: 0; font-size: 16px; letter-spacing: -0.02em; }
+      .drop p { margin: 7px 0 20px; color: #687485; font-size: 13px; }
+      .file-picker { position: relative; display: inline-block; }
+      .file-picker input {
+        position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+        overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+      }
+      .file-picker label {
+        display: inline-block; padding: 11px 20px; border-radius: 8px;
+        background: #3159c5; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer;
+      }
+      .file-picker label:hover { background: #2347a7; }
+      .file-picker input:focus-visible + label { outline: 3px solid #466ee8; outline-offset: 4px; }
+      .file-picker input:disabled + label { opacity: 0.55; cursor: not-allowed; }
+      .formats { margin: 20px 0 0; color: #687485; font-size: 12px; line-height: 1.7; }
+      .formats strong { color: #455369; }
+      .sidebar { padding: 30px 26px; border-left: 1px solid #e8ece9; background: #fbfcfa; }
+      .sidebar h2 { margin: 0 0 14px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.09em; color: #526074; }
+      .status { display: flex; gap: 10px; align-items: flex-start; margin: 0; color: #526074; font-size: 13px; line-height: 1.55; }
+      .status::before { content: ""; flex: 0 0 8px; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: #be8a38; }
+      .status[data-state="ready"]::before { background: #3e8b63; }
+      .status[data-state="error"]::before { background: #c14949; }
+      .privacy-note { margin-top: 28px; padding-top: 25px; border-top: 1px solid #e6ebe7; }
+      .privacy-note h3 { margin: 0 0 8px; font-size: 14px; }
+      .privacy-note p { margin: 0; color: #5b6878; font-size: 13px; line-height: 1.65; }
+      .privacy-note .privacy-detail { margin-top: 12px; font-size: 12px; }
+      #results:empty { display: none; }
+      #results { margin-top: 28px; }
+      .result { margin-top: 14px; border: 1px solid #e0e5e1; border-radius: 12px; background: #fff; overflow: hidden; }
+      .result header { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 16px 18px; border-bottom: 1px solid #e8ece9; }
+      .result-info { flex: 1 1 200px; min-width: 0; }
+      .result h2 { margin: 0 0 3px; font-size: 14px; overflow-wrap: anywhere; }
+      .result .meta { color: #687485; font-size: 12px; }
+      .result button {
+        padding: 8px 12px; border: 1px solid #dce2e7; border-radius: 7px;
+        background: #fff; color: #34445a; font-size: 12px; font-weight: 650; cursor: pointer;
+      }
+      .result button:hover:not(:disabled) { background: #f2f5f9; }
+      .result button:disabled { opacity: 0.5; cursor: not-allowed; }
+      .result.error pre { color: #a52e36; }
+      pre {
+        margin: 0; padding: 20px; max-height: 26rem; overflow: auto;
+        color: #39495c; background: #fbfcfd; font: 13px/1.7 ui-monospace, SFMono-Regular, Consolas, monospace;
+        white-space: pre-wrap; overflow-wrap: anywhere;
+      }
+      footer { border-top: 1px solid #e1e5e2; color: #687485; font-size: 12px; }
+      .footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding-top: 24px; padding-bottom: 24px; }
+      .footer-links { display: flex; gap: 20px; }
+      footer a { color: #455369; font-weight: 650; text-decoration: none; }
+      @media (max-width: 700px) {
+        .shell { padding-left: 20px; padding-right: 20px; }
+        main { padding-top: 48px; padding-bottom: 48px; }
+        .workspace { grid-template-columns: 1fr; }
+        .workspace-main { padding: 22px; }
+        .sidebar { padding: 22px; border-left: 0; border-top: 1px solid #e8ece9; }
+        .privacy-note { margin-top: 20px; padding-top: 20px; }
+        .section-heading { flex-wrap: wrap; }
+      }
+      @media (max-width: 360px) {
+        .header-inner { flex-wrap: wrap; padding-top: 16px; padding-bottom: 16px; }
+      }
+      @media (prefers-reduced-motion: reduce) { .drop { transition: none; } }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="shell header-inner">
+        <div class="brand"><span class="brand-mark" aria-hidden="true">M↓</span> MarkItDown</div>
+        <a class="header-link" href="https://github.com/microsoft/markitdown">Original project ↗</a>
+      </div>
+    </header>
+
+    <main class="shell">
+      <div class="intro">
+        <p class="eyebrow">A little more readable</p>
+        <h1>Documents in.<br />Markdown out.</h1>
+        <p>Turn your documents into clean, easy-to-use Markdown. Everything happens right here in your browser.</p>
+      </div>
+
+      <div class="workspace">
+        <section class="workspace-main" aria-labelledby="convert-heading">
+          <div class="section-heading">
+            <h2 id="convert-heading">Convert your files</h2>
+            <span>Multiple files supported</span>
+          </div>
+          <div id="drop" class="drop">
+            <div class="upload-icon" aria-hidden="true">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 16V4m-4 4 4-4 4 4" /><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" />
+              </svg>
+            </div>
+            <h3>Drop your files here</h3>
+            <p>Or select them from your device</p>
+            <div class="file-picker">
+              <input id="file" type="file" multiple disabled aria-describedby="formats" />
+              <label for="file">Choose files</label>
+            </div>
+          </div>
+          <p id="formats" class="formats"><strong>Supported:</strong> PDF, DOCX, PPTX, XLSX, XLS, HTML, CSV, JSON, XML/RSS, EPUB, IPYNB, MSG, ZIP, TXT</p>
+        </section>
+        <aside class="sidebar" aria-label="Converter information">
+          <h2>Converter status</h2>
+          <p id="status" class="status" role="status" aria-live="polite">Loading the converter. The first visit downloads about 35 MB.</p>
+          <div class="privacy-note">
+            <h3>Private by design</h3>
+            <p>Your files are processed on this device. They are not uploaded to a server.</p>
+            <p class="privacy-detail">The converter downloads its runtime and packages when it starts.</p>
+          </div>
+        </aside>
+      </div>
+
+      <section id="results" aria-label="Conversion results"></section>
+    </main>
+
+    <footer>
+      <div class="shell footer-inner">
+        <span>Built on Microsoft’s open-source MarkItDown.</span>
+        <div class="footer-links">
+          <a href="https://github.com/microsoft/markitdown">GitHub repository ↗</a>
+          <a href="LICENSE">MIT license</a>
+        </div>
+      </div>
+    </footer>
+
+    <template id="result-template">
+      <article class="result">
+        <header>
+          <div class="result-info">
+            <h2></h2>
+            <span class="meta" role="status"></span>
+          </div>
+          <button type="button" class="copy" disabled>Copy</button>
+          <button type="button" class="download" disabled>Download .md</button>
+        </header>
+        <pre tabindex="0"></pre>
+      </article>
+    </template>
+
+    <!-- Python setup, run inside the worker. Not executed by the browser. -->
+    <script type="text/x-python" id="python-src">
+import io
+import os
+import sys
+import types
+
+# Compiled packages shipped with Pyodide (loaded with pyodide.loadPackage).
+PYODIDE_PACKAGES = [
+    "micropip", "lxml", "pandas", "beautifulsoup4", "requests",
+    "charset-normalizer", "xlrd", "pillow", "cryptography",
+]
+
+# Pure-Python wheels from PyPI, installed with deps=False so micropip never tries
+# to resolve native-only packages (onnxruntime, pypdfium2).
+WHEELS = [
+    "markitdown==0.1.9",
+    "markdownify==1.2.3", "defusedxml==0.7.1", "python-pptx==1.0.2",
+    "XlsxWriter==3.3.1", "mammoth==1.13.0", "cobble==0.1.4", "openpyxl==3.1.5",
+    "et_xmlfile==2.0.0", "pdfminer.six==20260107", "pdfplumber==0.11.10",
+    "olefile==0.47",
+]
+
+
+def _install_stubs():
+    # magika needs onnxruntime, which has no WebAssembly build. Reporting every
+    # probe as unsupported makes MarkItDown use the file extension and MIME type.
+    magika = types.ModuleType("magika")
+
+    class _Result:
+        status = "unsupported"
+        prediction = None
+
+    class Magika:
+        def identify_stream(self, stream):
+            return _Result()
+
+        def identify_bytes(self, data):
+            return _Result()
+
+    magika.Magika = Magika
+    sys.modules["magika"] = magika
+
+    # pdfplumber imports pypdfium2 (native PDFium) only for page rendering,
+    # which MarkItDown never uses.
+    pdfium = types.ModuleType("pypdfium2")
+
+    def __getattr__(name):
+        raise ImportError(f"pypdfium2.{name} is unavailable in the browser")
+
+    pdfium.__getattr__ = __getattr__
+    sys.modules["pypdfium2"] = pdfium
+
+
+async def setup():
+    import micropip
+
+    _install_stubs()
+    await micropip.install(WHEELS, deps=False)
+
+    from markitdown import MarkItDown
+
+    global _md
+    _md = MarkItDown(enable_plugins=False)
+
+
+def convert(data, filename, mimetype=None):
+    from markitdown import StreamInfo
+
+    ext = os.path.splitext(filename)[1].lower() or None
+    info = StreamInfo(extension=ext, filename=filename, mimetype=mimetype or None)
+    return _md.convert_stream(io.BytesIO(bytes(data)), stream_info=info).markdown
+    </script>
+
+    <!-- Web Worker source, started from a Blob URL. Not executed by the browser directly. -->
+    <script type="text/x-worker" id="worker-src">
+let mod;
+
+// After start-up the converter never needs the network, so remove every way to reach it.
+function lockDownNetwork() {
+  const blocked = () => {
+    throw new Error("Network access is disabled: files are converted locally only.");
+  };
+  self.fetch = blocked;
+  self.importScripts = blocked;
+  for (const api of ["XMLHttpRequest", "WebSocket", "EventSource"]) {
+    self[api] = function () {
+      blocked();
+    };
+  }
+}
+
+self.onmessage = async ({ data }) => {
+  if (data.type === "init") {
+    try {
+      importScripts(data.pyodideURL + "pyodide.js");
+      const pyodide = await loadPyodide({ indexURL: data.pyodideURL });
+      pyodide.FS.writeFile("/home/pyodide/mdweb.py", data.python);
+      mod = pyodide.pyimport("mdweb");
+      await pyodide.loadPackage(mod.PYODIDE_PACKAGES.toJs(), { messageCallback: () => {} });
+      await mod.setup();
+      lockDownNetwork();
+      self.postMessage({ type: "ready" });
+    } catch (err) {
+      self.postMessage({ type: "fatal", error: String(err?.message ?? err) });
+    }
+    return;
+  }
+  const { id, name, mimetype, bytes } = data;
+  try {
+    const started = performance.now();
+    const markdown = mod.convert(new Uint8Array(bytes), name, mimetype);
+    self.postMessage({ type: "result", id, markdown, ms: performance.now() - started });
+  } catch (err) {
+    const msg = String(err?.message ?? err).trim().split("\n").filter(Boolean).pop();
+    self.postMessage({ type: "error", id, error: msg });
+  }
+};
+    </script>
+
+    <script>
+      const PYODIDE_URL = "https://cdn.jsdelivr.net/pyodide/v0.29.5/full/";
+      const $ = (id) => document.getElementById(id);
+      const status = $("status");
+      const input = $("file");
+      const drop = $("drop");
+
+      const workerSource = new Blob([$("worker-src").textContent], { type: "text/javascript" });
+      const worker = new Worker(URL.createObjectURL(workerSource));
+      worker.postMessage({ type: "init", pyodideURL: PYODIDE_URL, python: $("python-src").textContent });
+
+      const pending = new Map();
+      let nextId = 0;
+
+      worker.onmessage = ({ data }) => {
+        if (data.type === "ready") {
+          status.textContent = "Ready. Your files stay on this device.";
+          status.dataset.state = "ready";
+          input.disabled = false;
+        } else if (data.type === "fatal") {
+          status.textContent = `Failed to load the converter: ${data.error}`;
+          status.dataset.state = "error";
+        } else {
+          const view = pending.get(data.id);
+          pending.delete(data.id);
+          if (data.type === "result") view.done(data.markdown, data.ms);
+          else view.fail(data.error);
+        }
+      };
+
+      // Output is only ever written with textContent, never rendered as HTML.
+      function createView(file) {
+        const node = $("result-template").content.firstElementChild.cloneNode(true);
+        const meta = node.querySelector(".meta");
+        const output = node.querySelector("pre");
+        const copy = node.querySelector(".copy");
+        const download = node.querySelector(".download");
+        node.querySelector("h2").textContent = file.name;
+        meta.textContent = "Converting…";
+        $("results").prepend(node);
+        return {
+          done(markdown, ms) {
+            meta.textContent = `${(file.size / 1024).toFixed(1)} KB → ${markdown.length} chars in ${Math.round(ms)} ms`;
+            output.textContent = markdown || "(No text content could be extracted.)";
+            copy.disabled = download.disabled = false;
+            copy.onclick = () => navigator.clipboard.writeText(markdown);
+            download.onclick = () => {
+              const url = URL.createObjectURL(new Blob([markdown], { type: "text/markdown" }));
+              const name = file.name.replace(/\.[^.]*$/, "") + ".md";
+              Object.assign(document.createElement("a"), { href: url, download: name }).click();
+              URL.revokeObjectURL(url);
+            };
+          },
+          fail(error) {
+            node.classList.add("error");
+            meta.textContent = "Conversion failed";
+            output.textContent = error;
+          },
+        };
+      }
+
+      async function convert(files) {
+        for (const file of files) {
+          const id = nextId++;
+          pending.set(id, createView(file));
+          const bytes = await file.arrayBuffer();
+          worker.postMessage({ id, name: file.name, mimetype: file.type, bytes }, [bytes]);
+        }
+      }
+
+      input.addEventListener("change", () => {
+        convert([...input.files]);
+        input.value = "";
+      });
+      drop.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        drop.classList.add("over");
+      });
+      drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+      drop.addEventListener("drop", (e) => {
+        e.preventDefault();
+        drop.classList.remove("over");
+        if (!input.disabled) convert([...e.dataTransfer.files]);
+      });
+    </script>
+  </body>
+</html>
