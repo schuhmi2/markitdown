@@ -120,3 +120,8 @@ s = re.sub(r"style-src '[^']*'", f"style-src '{h(style)}'", s, count=1)
 open(p, "w", encoding="utf-8").write(s)
 EOF
 ```
+
+## macOS desktop app
+
+[`desktop-macos`](../desktop-macos) packages this page as an offline macOS app with Pyodide
+and all wheels bundled. See its README for building and installing.

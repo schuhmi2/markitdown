@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- The App Sandbox limits the app to its own container and the files you open or save. -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+	<!-- WKWebView cannot start its web content without this, even for bundled pages. The page
+	     itself is denied network access by its CSP and by a WebKit content blocker (see main.swift). -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+</dict>
+</plist>
