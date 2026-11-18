@@ -19,15 +19,28 @@ the [MIT License](LICENSE), reproduced here with its Microsoft copyright notice.
 
 Live on GitHub Pages: https://schuhmi2.github.io/markitdown/
 
-To run it locally:
+**Download and open it locally (Windows, macOS, Linux):** download `MarkItDown-Web-<version>.zip`
+from the [releases](https://github.com/schuhmi2/markitdown/releases), extract it and double-click
+`index.html`. No server or installation is needed. Opening the page from disk was tested in
+Chrome, Edge, Firefox and Safari (WebKit). The browser still downloads the Python runtime and
+packages from the internet each session; your files stay on your computer.
+
+To serve it locally:
 
 ```sh
 python3 -m http.server 8000 --bind 127.0.0.1 -d browser-poc
 # open http://127.0.0.1:8000 and drop files onto the page
 ```
 
-Any static host (nginx, S3, GitHub Pages, an intranet share) can serve the page. Serve it over
-`http(s)://`, not `file://`. There is no build step and no npm.
+Any static host (nginx, S3, GitHub Pages, an intranet share) can serve the page. There is no
+build step and no npm.
+
+The footer shows this page's version (`<span id="app-version">`) and the MarkItDown version that
+Pyodide loaded. To build the release zip for the current version:
+
+```sh
+python3 browser-poc/make_release_zip.py   # writes browser-poc/dist/MarkItDown-Web-<version>.zip
+```
 
 ## How it works
 
